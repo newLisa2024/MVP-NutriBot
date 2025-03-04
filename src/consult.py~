@@ -1,0 +1,46 @@
+import os
+import openai
+from dotenv import load_dotenv
+
+# Импортируем новый класс ChatOpenAI из langchain-openai
+from langchain_openai import ChatOpenAI
+
+# Импортируем типы сообщений и механизм RunnableSequence
+from langchain.schema import SystemMessage, HumanMessage
+from langchain.schema.runnable import RunnableSequence
+
+# Загружаем переменные окружения из .env
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Создаем цепочку (RunnableSequence) из нескольких шагов:
+# 1. SystemMessage задает роль ассистента (эксперта по питанию)
+# 2. HumanMessage принимает вопрос пользователя (подставляется через {question})
+# 3. ChatOpenAI вызывает модель OpenAI для формирования ответа
+chain = RunnableSequence([
+    SystemMessage(
+        content=(
+            "Ты – эксперт по питанию и здоровому образу жизни. "
+            "Отвечай на вопросы пользователя подробно и понятно, на русском языке."
+        )
+    ),
+    HumanMessage(content="{question}"),
+    ChatOpenAI(
+        temperature=0.7,
+        max_tokens=200
+    )
+])
+
+
+def get_consultation(question: str) -> str:
+    """
+    Получает консультацию от модели, передавая вопрос через цепочку.
+
+    :param question: Текст вопроса пользователя.
+    :return: Ответ модели как строка.
+    """
+    # Запускаем цепочку, подставляя вопрос в HumanMessage через параметр {question}
+    result = chain.invoke({"question": question})
+    # Возвращаем текст ответа (result — объект Message)
+    return result.content
+
