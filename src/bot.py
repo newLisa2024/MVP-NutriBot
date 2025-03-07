@@ -7,17 +7,27 @@ from telegram.ext import (
     ContextTypes,
     filters
 )
-from db import add_user
+from db import add_user, is_user_registered
 from consult import get_consultation
 
 # Определяем состояния для многошаговой регистрации
 NAME, AGE, WEIGHT, GOAL, DISEASES, ALLERGIES = range(6)
 
-# Функции для регистрации
+# --- ФУНКЦИИ РЕГИСТРАЦИИ ---
 
 async def start_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Давай начнем регистрацию. Как тебя зовут?")
-    return NAME
+    telegram_id = update.effective_user.id
+    print(f"DEBUG (bot.py): start_registration -> telegram_id = {telegram_id}")
+
+    # Проверяем, есть ли пользователь в базе
+    if is_user_registered(telegram_id):
+        print("DEBUG (bot.py): is_user_registered вернул True. Пользователь уже в БД.")
+        await update.message.reply_text("Вы уже зарегистрированы!")
+        return ConversationHandler.END
+    else:
+        print("DEBUG (bot.py): is_user_registered вернул False. Начинаем регистрацию.")
+        await update.message.reply_text("Привет! Давай начнем регистрацию. Как тебя зовут?")
+        return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['name'] = update.message.text
@@ -48,14 +58,23 @@ async def get_allergies(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['allergies'] = update.message.text
 
     # Сохраняем данные пользователя в базу
+    telegram_id = update.effective_user.id
+    name = context.user_data.get('name')
+    age = context.user_data.get('age')
+    weight = context.user_data.get('weight')
+    goal = context.user_data.get('goal')
+    diseases = context.user_data.get('diseases')
+    allergies = context.user_data.get('allergies')
+
+    print(f"DEBUG (bot.py): get_allergies -> Сохраняем пользователя ID={telegram_id}")
     add_user(
-        telegram_id=update.effective_user.id,
-        name=context.user_data.get('name'),
-        age=context.user_data.get('age'),
-        weight=context.user_data.get('weight'),
-        goal=context.user_data.get('goal'),
-        diseases=context.user_data.get('diseases'),
-        allergies=context.user_data.get('allergies')
+        telegram_id=telegram_id,
+        name=name,
+        age=age,
+        weight=weight,
+        goal=goal,
+        diseases=diseases,
+        allergies=allergies
     )
 
     await update.message.reply_text("Регистрация завершена! Спасибо за предоставленные данные.")
@@ -65,7 +84,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Регистрация отменена.")
     return ConversationHandler.END
 
-# Обработчик команды /ask для консультаций
+# --- ФУНКЦИЯ ДЛЯ КОМАНДЫ /ASK ---
 
 async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) == 0:
@@ -75,7 +94,7 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answer = get_consultation(question)
     await update.message.reply_text(answer)
 
-# Функции для создания обработчиков
+# --- СОЗДАНИЕ ОБРАБОТЧИКОВ ---
 
 def create_conv_handler():
     conv_handler = ConversationHandler(
@@ -94,6 +113,7 @@ def create_conv_handler():
 
 def create_ask_handler():
     return CommandHandler("ask", ask)
+
 
 
 
