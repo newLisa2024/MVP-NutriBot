@@ -32,6 +32,12 @@ if not ENCRYPTION_KEY:
 
 cipher = Fernet(ENCRYPTION_KEY.encode())
 
+def fix_padding(token: str) -> str:
+    missing_padding = len(token) % 4
+    if missing_padding:
+        token += '=' * (4 - missing_padding)
+    return token
+
 
 def encrypt_data(data: str) -> str:
     """Шифрует строковые данные перед сохранением в БД"""
@@ -40,7 +46,9 @@ def encrypt_data(data: str) -> str:
 
 def decrypt_data(encrypted_data: str) -> str:
     """Дешифрует данные из БД"""
-    return cipher.decrypt(encrypted_data.encode()).decode()
+    fixed_token = fix_padding(encrypted_data)
+    return cipher.decrypt(fixed_token.encode()).decode()
+
 
 
 def init_db():
