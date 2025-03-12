@@ -45,11 +45,9 @@ async def send_water_reminder(app):
 
 
 def start_reminders(app):
-    """Инициализирует и запускает планировщик напоминаний"""
     try:
         logger.info("Инициализация сервиса напоминаний")
 
-        # Создаем планировщик с существующим event loop
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
@@ -58,20 +56,19 @@ def start_reminders(app):
 
         scheduler = AsyncIOScheduler(event_loop=loop)
 
-        # Конфигурация расписания (для теста можно изменить на minutes=1)
+        # Отправка напоминания каждые 2 часа только с 8:00 до 20:00
         scheduler.add_job(
             send_water_reminder,
-            'interval',
-            hours=2,
+            'cron',
+            hour='8-20/2',  # запуск в 8, 10, 12, 14, 16, 18, 20 часов
             args=[app],
             id="water_reminder",
             misfire_grace_time=300
         )
 
         scheduler.start()
-        logger.info("Планировщик напоминаний запущен. Интервал: каждые 2 часа")
+        logger.info("Планировщик напоминаний запущен. Напоминания будут приходить только в дневное время.")
 
     except Exception as e:
         logger.critical(f"Ошибка инициализации планировщика: {str(e)}", exc_info=True)
         raise
-

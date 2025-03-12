@@ -6,62 +6,64 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-# Настройка логирования
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
 
-# Загрузка переменных окружения
 load_dotenv()
 
 
-# Инициализация цепочки обработки запросов
-def create_consultation_chain():
-    """Создаёт и возвращает цепочку для консультаций"""
+def get_consultation(question: str, user_data: dict = None) -> str:
+    """
+    Генерирует ответ на вопрос пользователя с учетом данных его профиля (если они предоставлены).
+    """
     try:
-        # Системный промпт с персонажем нутрициолога
-        system_prompt = (
-            "Ты - опытный нутрициолог с 10-летним стажем. "
-            "Давай подробные, научно обоснованные ответы на русском языке. "
-            "Учитывай возраст, вес и заболевания пользователя из его профиля. "
-            "Если вопрос не связан с питанием, вежливо предложи задать другой вопрос."
-        )
+        if user_data:
+            # Формируем персонализированный промпт
+            system_prompt = (
+                "Ты - диетолог-нутрициолог с 15-летним стажем. "
+                "У пользователя, зарегистрированного с данными: возраст {age} лет, вес {weight} кг, рост {height} см, "
+                "заболевания: {diseases}, аллергии: {allergies} и цель: {goal}, "
+                "ответь на следующий вопрос: {question} "
+                "Дай подробный и научно обоснованный ответ, учитывая индивидуальные особенности пользователя."
+            )
+            age = user_data.get("age", "неизвестно")
+            weight = user_data.get("weight", "неизвестно")
+            # Если рост не задан (регистрация может его не собирать), задаём значение по умолчанию:
+            height = user_data.get("height", "неизвестно")
+            diseases = user_data.get("diseases", "нет")
+            allergies = user_data.get("allergies", "нет")
+            goal = user_data.get("goal", "нет данных")
+            formatted_prompt = system_prompt.format(
+                age=age,
+                weight=weight,
+                height=height,
+                diseases=diseases,
+                allergies=allergies,
+                goal=goal,
+                question=question
+            )
+        else:
+            # Если данные отсутствуют, используем общий промпт
+            formatted_prompt = (
+                "Ты - опытный диетолог-нутрициолог с 15-летним стажем. "
+                "Ответь на следующий вопрос: {question} "
+                "Дай подробный и научно обоснованный ответ."
+            ).format(question=question)
 
-        # Создаем цепочку обработки
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
-            ("human", "{question}")
-        ])
-
-        return (
-                prompt
+        chain = (
+                ChatPromptTemplate.from_template(formatted_prompt)
                 | ChatOpenAI(
             model_name="gpt-4o",
             temperature=0.7,
-            max_tokens=500,
+            max_tokens=700,
             openai_api_key=os.getenv("OPENAI_API_KEY")
         )
                 | StrOutputParser()
         )
-
-    except Exception as e:
-        logger.error(f"Ошибка инициализации цепочки: {str(e)}")
-        raise
-
-
-# Глобальная инициализация цепочки
-consult_chain = create_consultation_chain()
-
-
-def get_consultation(question: str) -> str:
-    """Генерирует ответ на вопрос пользователя"""
-    try:
-        logger.info(f"Обработка вопроса: {question[:50]}...")  # Логируем начало обработки
-
-        result = consult_chain.invoke({"question": question})
-
+        result = chain.invoke({})
         logger.info(f"Успешно сгенерирован ответ длиной {len(result)} символов")
         return result
 
