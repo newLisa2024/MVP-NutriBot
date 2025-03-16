@@ -10,15 +10,11 @@ BUTTON_PROMPTS = {
 }
 
 def get_main_keyboard():
-    """
-    Главное меню в виде inline-кнопок.
-    """
     keyboard = [
         [InlineKeyboardButton("Регистрация", callback_data="/start")],
         [InlineKeyboardButton("Консультация", callback_data="/ask")],
         [InlineKeyboardButton("План питания", callback_data="/nutrition")],
-        [InlineKeyboardButton("Рецепт", callback_data="/recipe")],
-        [InlineKeyboardButton("Помощь", callback_data="/help")]
+        [InlineKeyboardButton("Рецепт", callback_data="/recipe")]
     ]
     return InlineKeyboardMarkup(keyboard)
 

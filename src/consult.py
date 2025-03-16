@@ -21,9 +21,8 @@ def get_consultation(question: str, user_data: dict = None) -> str:
     """
     try:
         if user_data:
-            # Формируем персонализированный промпт
             system_prompt = (
-                "Ты - диетолог-нутрициолог с 15-летним стажем. "
+                "Ты - диетолог-нутрициолог с 10-летним стажем. "
                 "У пользователя, зарегистрированного с данными: возраст {age} лет, вес {weight} кг, рост {height} см, "
                 "заболевания: {diseases}, аллергии: {allergies} и цель: {goal}, "
                 "ответь на следующий вопрос: {question} "
@@ -48,7 +47,7 @@ def get_consultation(question: str, user_data: dict = None) -> str:
         else:
             # Если данные отсутствуют, используем общий промпт
             formatted_prompt = (
-                "Ты - опытный диетолог-нутрициолог с 15-летним стажем. "
+                "Ты - опытный диетолог-нутрициолог с 10-летним стажем. "
                 "Ответь на следующий вопрос: {question} "
                 "Дай подробный и научно обоснованный ответ."
             ).format(question=question)
@@ -58,7 +57,7 @@ def get_consultation(question: str, user_data: dict = None) -> str:
                 | ChatOpenAI(
             model_name="gpt-4o",
             temperature=0.7,
-            max_tokens=700,
+            max_tokens=1000,
             openai_api_key=os.getenv("OPENAI_API_KEY")
         )
                 | StrOutputParser()
